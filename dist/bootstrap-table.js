@@ -55,6 +55,16 @@
         return index;
     };
 
+    var getMultiFieldIndex = function (columns, fields) {
+        var indexes = []
+        $.each(columns, function (i, column) {
+            if (fields.indexOf(column.field)  !== -1) {
+                indexes.push(i);
+            }
+        });
+        return indexes;
+    };
+
     // http://jsfiddle.net/wenyi/47nz7ez9/3/
     var setFieldIndex = function (columns) {
         var i, j, k,
@@ -652,13 +662,27 @@
                 if (typeof $(this).data('field') !== 'undefined') {
                     $(this).data('field', $(this).data('field') + '');
                 }
+                var attrs = {};
+                $.each( $(this)[0].attributes, function ( index, attribute ) {
+                    if(attribute.name.indexOf("data-") === 0) attrs[attribute.name] = attribute.value;
+                });
+
+                var colType = $(this).attr('data-editable-type');
+                if(!colType) colType = $(this).attr('data-filterType');
+                var filterData = ($(this).attr('data-editable-json-var') ? Object.values(window[$(this).attr('data-editable-json-var')]).sort() : false);
+
                 column.push($.extend({}, {
                     title: $(this).html(),
                     'class': $(this).attr('class'),
                     titleTooltip: $(this).attr('title'),
                     rowspan: $(this).attr('rowspan') ? +$(this).attr('rowspan') : undefined,
-                    colspan: $(this).attr('colspan') ? +$(this).attr('colspan') : undefined
+                    colspan: $(this).attr('colspan') ? +$(this).attr('colspan') : undefined,
+                    attributes: attrs,
+                    type: colType,
+                    filterData: filterData,
+                    editableJsonVar: $(this).attr('data-editable-json-var')
                 }, $(this).data()));
+
             });
             columns.push(column);
         });
@@ -743,7 +767,8 @@
             sorters: [],
             sortNames: [],
             cellStyles: [],
-            searchables: []
+            searchables: [],
+            editableJsonVars: []
         };
 
         $.each(this.options.columns, function (i, columns) {
@@ -791,6 +816,7 @@
                     that.header.sortNames[column.fieldIndex] = column.sortName;
                     that.header.cellStyles[column.fieldIndex] = column.cellStyle;
                     that.header.searchables[column.fieldIndex] = column.searchable;
+                    that.header.editableJsonVars[column.fieldIndex] = column.editableJsonVar;
 
                     if (!column.visible) {
                         return;
@@ -802,7 +828,14 @@
 
                     visibleColumns[column.field] = column;
                 }
-
+                var AttrStr = "";
+                if(Object.keys(column.attributes).length > 0)
+                {
+                    for(var a in column.attributes)
+                    {
+                        AttrStr += sprintf(' %s="%s"', a,column.attributes[a]);
+                    }
+                }
                 html.push('<th' + sprintf(' title="%s"', column.titleTooltip),
                     column.checkbox || column.radio ?
                         sprintf(' class="bs-checkbox %s"', column['class'] || '') :
@@ -811,6 +844,7 @@
                     sprintf(' rowspan="%s"', column.rowspan),
                     sprintf(' colspan="%s"', column.colspan),
                     sprintf(' data-field="%s"', column.field),
+                    AttrStr,
                     '>');
 
                 html.push(sprintf('<div class="th-inner %s">', that.options.sortable && column.sortable ?
@@ -820,7 +854,7 @@
 
                 if (column.checkbox) {
                     if (!that.options.singleSelect && that.options.checkboxHeader) {
-                        text = '<input name="btSelectAll" type="checkbox" />';
+                        text += ' <input name="btSelectAll" type="checkbox" /> ';
                     }
                     that.header.stateField = column.field;
                 }
@@ -1206,7 +1240,7 @@
         }
     };
 
-    BootstrapTable.prototype.onSearch = function (event) {
+    BootstrapTable.prototype.onSearch = function (event, strictOveride) {
         var text = $.trim($(event.currentTarget).val());
 
         // trim search input
@@ -1221,14 +1255,14 @@
         this.options.searchText = text;
 
         this.options.pageNumber = 1;
-        this.initSearch();
+        this.initSearch(strictOveride);
         this.updatePagination();
         this.trigger('search', text);
     };
 
-    BootstrapTable.prototype.initSearch = function () {
+    BootstrapTable.prototype.initSearch = function (strictOveride) {
         var that = this;
-
+        var strictSearch = typeof strictOveride !== 'undefined' ? strictOveride : that.options.strictSearch;
         if (this.options.sidePagination !== 'server') {
             if (this.options.customSearch !== $.noop) {
                 this.options.customSearch.apply(this, [this.searchText]);
@@ -1271,14 +1305,14 @@
                         // Fix #142: respect searchForamtter boolean
                         if (column && column.searchFormatter) {
                             value = calculateObjectValue(column,
-                                that.header.formatters[j], [value, item, i], value);
+                                that.header.formatters[j], [value, item, i, column], value);
                         }
                     } else {
                         value = item[key];
                     }
 
                     if (typeof value === 'string' || typeof value === 'number') {
-                        if (that.options.strictSearch) {
+                        if (strictSearch) {
                             if ((value + '').toLowerCase() === s) {
                                 return true;
                             }

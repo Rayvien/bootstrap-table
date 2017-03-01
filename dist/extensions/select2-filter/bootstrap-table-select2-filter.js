@@ -231,7 +231,7 @@
           rowValue = $.fn.bootstrapTable.utils.calculateObjectValue(
               that.header,
               that.header.formatters[$.inArray(field, that.header.fields)],
-              [rowValue, row, idx], rowValue);
+              [rowValue, row, idx, column], rowValue);
 
           if (column.filterStrictSearch) {
             if (!($.inArray(field, that.header.fields) !== -1 &&

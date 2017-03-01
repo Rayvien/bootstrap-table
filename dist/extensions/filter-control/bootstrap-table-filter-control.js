@@ -212,7 +212,7 @@
                 for (var i = 0; i < z; i++) {
                     //Added a new value
                     var fieldValue = data[i][field],
-                        formattedValue = $.fn.bootstrapTable.utils.calculateObjectValue(that.header, that.header.formatters[j], [fieldValue, data[i], i], fieldValue);
+                        formattedValue = $.fn.bootstrapTable.utils.calculateObjectValue(that.header, that.header.formatters[j], [fieldValue, data[i], i, column], fieldValue);
 
                     uniqueValues[formattedValue] = fieldValue;
                 }
@@ -570,9 +570,7 @@
 
                 // Fix #142: search use formated data
                 if (thisColumn && thisColumn.searchFormatter) {
-                    value = $.fn.bootstrapTable.utils.calculateObjectValue(that.header,
-                    that.header.formatters[$.inArray(key, that.header.fields)],
-                    [value, item, i], value);
+                    value = $.fn.bootstrapTable.utils.calculateObjectValue(that.header, that.header.formatters[$.inArray(key, that.header.fields)], [value, item, i, thisColumn], value);
                 }
 
                 if (thisColumn.filterStrictSearch) {

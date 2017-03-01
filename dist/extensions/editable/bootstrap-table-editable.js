@@ -16,7 +16,7 @@
             return false;
         },
         onEditableShown: function(field, row, $el, editable) {
-            return false;
+            return true;
         },
         onEditableHidden: function(field, row, $el, reason) {
             return false;
@@ -121,7 +121,7 @@
                     $(this).data('value', params.submitValue);
                     row[column.field] = params.submitValue;
                     that.trigger('editable-save', column.field, row, oldValue, $(this));
-                    that.resetFooter();
+                    //that.resetFooter();
                 });
             that.$body.find('a[data-name="' + column.field + '"]').editable(column.editable)
                 .off('shown').on('shown', function(e, editable) {
